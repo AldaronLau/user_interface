@@ -15,5 +15,3 @@ class information(object):
 		self.enable_state = self.state_disabled
 	def __repr___(self):
 		pass
-
-pi_bot_info = information()
