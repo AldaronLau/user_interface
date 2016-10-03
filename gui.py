@@ -7,7 +7,7 @@ from information import information
 from communications import communications
 
 class gui(object):
-    '''Class to handle communicating between the GUI and the pi_bot'''
+    '''Class to handle communicating between the GUI'''
     
     __interface_name = "pi_bot - remote display"
     __interface_size = "600x400"

@@ -29,10 +29,6 @@ class user_input(object):
                 rep+="\t"+str(button_i)+" : "+str(stick.get_button(button_i))+"\n"
             rep+="\n"
         return rep
-    def pause_user_input(self):
-        self.check_user_input = 0
-    def unpause_user_input(self):
-        self.check_user_input = 1
     def reset_user_input(self, ui, state=0):
         if not self.check_user_input and state is 0:
             return 0
@@ -89,7 +85,9 @@ class user_input(object):
         joystick 6, axis, axis 1, 0.7071  	JOY:6:a:1:0.7071:
         joystick 3, button, button 5, press  	JOY:3:b:5:1:
         '''
+        print("checking for events")
         for event in pygame.event.get():
+            print("got joystick event")
             event_string = "JOY:" + str(event.joy)
             if event.type == JOYAXISMOTION:
                 event_string += ":a:"+str(event.axis)+":"+str(event.value)+":"
@@ -99,18 +97,19 @@ class user_input(object):
                 event_string += ":b:" + str(event.button) + ":0:"
             else:
                 continue
-        self.events.append(event_string)
-        print(event_string + "\n")
+            self.events.append(event_string)
+            print(event_string + "\n")
     def send_user_input_events(self, ui):
         '''Sends events in user_input.events to the pi_bot
         
         Assumes user_input.check_user_input() was called
         following the last call to user_input.send_user_input_events()
         '''
-        #comms_out.send_string("output")
         for event in self.events:
             ui.comms.send_message(self.events)
         self.clear_user_input_events()
     def clear_user_input_events(self):
         '''Deletes all event strings from the string array'''
         del self.events[:]
+    def quit_input(self):
+        pygame.quit()
