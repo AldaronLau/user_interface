@@ -19,11 +19,10 @@ class user_interface(object):
         self.user_in.check_joysticks()
         self.user_in.check_user_input_events()
         self.comms.handle_incoming_messages(self)
-        if self.comms.test_comms():
-            if self.robot_info.enable_state is \
-                    self.robot_info.state_teleop_enabled:
-                self.user_in.check_user_input_events()
-                self.user_in.send_user_input_events()
+        if self.robot_info.enable_state is \
+                self.robot_info.state_teleop_enabled:
+            self.user_in.check_user_input_events()
+            self.user_in.send_user_input_events(self)
         self.window.update_gui(self)
         self.window.root.after(16, lambda: self.update_user_interface())
     def quit_program(self):

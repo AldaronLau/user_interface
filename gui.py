@@ -45,7 +45,7 @@ class gui(object):
                     borderwidth=0, anchor="w", \
                     width=20, height=1, \
                     font=self.enable_mode_options_font, \
-                    command=lambda option=option: self.select_enable_mode(option))
+                    command=lambda option=option: self.select_enable_mode(ui, option))
             self.enable_mode_buttons.append(enable_mode_button)
             self.enable_mode_buttons[-1].pack()
         self.selected_enable_mode = self.__teleop_selection
@@ -151,13 +151,14 @@ class gui(object):
                         fg="#eeeeee", \
                         activebackground="#555555", \
                         activeforeground="#eeeeee")
-    def select_enable_mode(self, enable_mode):
+    def select_enable_mode(self, ui, enable_mode):
         '''Select mode to enable if ENABLE is pressed
         
         Options are:
         TELEOP, AUTO, TEST
         '''
-        self.selected_enable_mode = enable_mode
+        if ui.robot_info.enable_state == information.state_disabled:
+            self.selected_enable_mode = enable_mode
     def enable_pi_bot(self, ui):
         '''Tells comms_out to enable the robot in the selected mode'''
         ui.comms.send_message("ENABLE_" + \

@@ -85,9 +85,7 @@ class user_input(object):
         joystick 6, axis, axis 1, 0.7071  	JOY:6:a:1:0.7071:
         joystick 3, button, button 5, press  	JOY:3:b:5:1:
         '''
-        print("checking for events")
         for event in pygame.event.get():
-            print("got joystick event")
             event_string = "JOY:" + str(event.joy)
             if event.type == JOYAXISMOTION:
                 event_string += ":a:"+str(event.axis)+":"+str(event.value)+":"
