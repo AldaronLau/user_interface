@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 import socket
-from multiprocessing import Process, Queue, Lock
+from multiprocessing import Process, Queue, Pipe
 class communications(object):
     '''Class that manages communications with the user interface'''
-    __SERVER_NAME = "127.0.0.1"
+    __SERVER_NAME = ""
     __PORT = 4321
     __MAX_MESSAGE_LENGTH = 16
     def __init__(self):
@@ -18,79 +18,78 @@ class communications(object):
         communications.client_address - address of the accepted client
         '''
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_info = (self.__SERVER_NAME, self.__PORT)
-        self.server_socket.bind(server_info)
+        self.server_socket.bind((self.__SERVER_NAME, self.__PORT))
         self.server_socket.listen(1)
         self.recieved_messages = Queue(10)
-
-        self.connection = None
-        self.client_address = None
-        self.connection_lock = Lock()
-        pro = lambda:self.connect_to_user()
+        self.conn_recv, self.conn_send = Pipe(True)
+        self.client = None
+        pro = lambda:self.connect_to_user(self.conn_send)
         Process(target=pro, daemon=True).start()
     def __repr__(self):
         pass
-    def test_comms(self):
-        
-        self.connection_lock.acquire()
-        connected = False if self.connection is None else True
-        self.connection_lock.release()
-        return connected
-    def connect_to_user(self):
+    def get_client(self):
+        if self.conn_recv.poll():
+            self.client = self.conn_recv.recv()
+        return self.client
+    def connect_to_user(self, conn_send):
         '''Waits for a client to connect to the pi_bot
         
         Once connected, a new process is used to monitor recieved data
         '''
-        connection, self.client_address = self.server_socket.accept()
-        self.connection_lock.acquire()
-        self.connection = connection
-        self.connection_lock.release()
+        try:
+            client, address = self.server_socket.accept()
+        except BaseException as error:
+            self.server_socket.shutdown(1)
+            self.server_socket.close()
+            raise error
+        conn_send.send(client)
         
-        pro = lambda:self.recieve_incoming_messages()
-        Process(target=pro, daemon=True).start()
-    def send_message(self, message):
-        '''Attempts to send data to client'''
-        if self.connection is not None:
-            if len(message) > self.max_message_length:
-                print("Message \"" + message + "\" is to long\n")#TODO: to log file
-            else:
-                self.connection_lock.acquire()
-                self.connection.sendall(fill_out_message(message))
-                self.connection_lock.release()
-        else:
-            '''Does not send information because no connection has been made'''
-            pass
-    def recieve_incoming_messages(self):
         '''Updates communications.recieved_messages with any recieved data
         
         This is a seperate process as socket.recv() will block the program
         '''
         while True:
-            message = self.connection.recv(self.__MAX_MESSAGE_LENGTH)
+            print("waiting for message...")
+            try:
+                bytes = client.recv(self.__MAX_MESSAGE_LENGTH)
+            except BaseException as error:
+                self.server_socket.shutdown(1)
+                self.server_socket.close()
+                raise error
+            message = bytes.decode('utf-8')
             if message is "":
-                self.connection_lock.acquire()
-                self.connection = None
-                self.connection_lock.release()
-                pro = lambda:self.connect_to_user()
-                Process(target=pro, daemon=True).start()
-                break
+                conn_send.send(None)
+                self.connect_to_user(conn_send)
+                return
             self.recieved_messages.put(message)
+    def send_message(self, message):
+        '''Attempts to send data to client'''
+        if self.get_client():
+            if len(message) > self.__MAX_MESSAGE_LENGTH:
+                print("Message \"" + message + "\" is to long\n")#TODO: to log file
+            else:
+                bytes = self.fill_out_message(message).encode('utf-8')
+                self.client.sendall(bytes)
+        else:
+            '''Does not send information because no connection has been made'''
+            pass
     def handle_incoming_messages(self, bot):
         '''Called by robot to handle any data sent by the user_interface'''
-       # print("handleing messages")
+        self.get_client()
         while not self.recieved_messages.empty():
             message = self.recieved_messages.get()
-            if message is fill_out_message("DISABLE"):
+            print("recieved message : " + message)
+            if message == self.fill_out_message("DISABLE"):
                 bot.disable()
-            elif message is fill_out_message("ENABLE_TELEOP"):
+            elif message == self.fill_out_message("ENABLE_TELEOP"):
                 bot.enable_teleop()
-            elif message is fill_out_message("ENABLE_AUTO"):
+            elif message == self.fill_out_message("ENABLE_AUTO"):
                 bot.enable_auto()
-            elif message[:3] is "JOY":
+            elif message[:3] == "JOY":
                 '''Handle joystick event'''
                 pass
             else:
                 print("Unknown recieved message: \"" + message + "\"")#TODO: to error log file
-def fill_out_message(message):
-    needed_characters = "_" * (self.__MAX_MESSAGE_LENGTH - len(message))
-    return message + needed_characters
+    def fill_out_message(self, message):
+        needed_characters = "_" * (self.__MAX_MESSAGE_LENGTH - len(message))
+        return message + needed_characters

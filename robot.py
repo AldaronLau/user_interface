@@ -23,7 +23,7 @@ class robot(object):
             details += "\n" + str(system)
         return details
     def update(self):
-        if not self.comms.test_comms():
+        if not self.comms.get_client():
             self.disable()
         self.comms.handle_incoming_messages(self)
         if self._enable_state is robot.__state_disabled:
@@ -35,8 +35,10 @@ class robot(object):
             if not self.comms.test_comms():
                 self.disable()
         elif self._enable_state is robot.__state_teleop_enabled:
+            print("running teleop per")
             self.teleop_periodic()
         elif self._enable_state is robot.__state_auto_enabled:
+            print("running auto per")
             self.auto_periodic()
     def enable_teleop(self):
         self.teleop_init()
