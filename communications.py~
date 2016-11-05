@@ -1,0 +1,80 @@
+#!/usr/bin/python3
+import socket
+from multiprocessing import Process, Queue
+class communications(object):
+    '''Class that manages communications with the user interface'''
+    __ip_address = "192.168.0.1"
+    __port = 4321
+    __MAX_MESSAGE_LENGTH = 16
+    def __init__(self):
+        '''Initializes pi_bot server socket'''
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_info = (ip_address, port)
+        self.server_socket.bind(server_info)
+        self.server_socket.listen(1)
+        
+        self.outgoing_messages = Queue(20)
+        self.recieved_messages = Queue(10)
+
+        self.connection = None
+        self.client_address = None
+        Process(target=lambda:self.connect_to_user(), daemon=True).start()
+    def __repr__(self):
+        pass
+    def test_comms(self):
+        return False if self.connection is None else True
+    def connect_to_user(self):
+        self.connection, self.client_address = self.server_socket.accept()
+        
+        Process(target=lambda:self.send_outgoing_messages(), daemon=True).start()
+        Process(target=lambda:self.recieve_incoming_messages(), daemon=True).start()
+    def send_message(self, message):
+        if len(message) <= self.max_message_length:
+            self.outgoing_messages.put(message)
+        else:
+            #print to log file ("Message \"" + message + "\" is to long\n" + \
+            #        "\tmax message length is " + str(self.max_message_length))
+            pass
+    def send_outgoing_messages(self):
+         '''Sends data to client
+         TODO: should this be a seperate process?
+             should I just put this code in communications.send_message
+             yes. yes  I should
+        
+        Use as a seperate process
+            daemon=True
+        '''
+        while True:
+            if self.connection is None:
+                break
+            try:
+                message = self.outgoing_messages.get(block=False)
+            except queue.Empty:
+                continue
+            try:
+                self.connection.sendall(message)
+            except:
+                
+    def recieve_incoming_messages(self):
+        '''Updates communications.recieved_messages with any recieved data
+        
+        Use as a seperate process
+            daemon=True
+        '''
+        while True:
+            message = self.connection.recv(self.__MAX_MESSAGE_LENGTH)
+            if message is "":
+                self.connection = None
+                break
+            self.recieved_messages.put(message)
+    def handle_incoming_messages(self):
+        '''Called by robot to handle any data sent by the user interface'''
+        while not self.recieved_messages.empty():
+            message = self.recieved_messages.get()
+            #deal with messages
+            if message is "Example_message_recieved":
+                pass
+            elif message is "second example":
+                pass
+            else:
+                #print("Unknown recieved message: \"" + message + "\"") to error log file
