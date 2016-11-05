@@ -4,7 +4,7 @@ from .clock import clock
 
 class command(object):
         '''Base class for commands that can be triggered by operator input'''
-        
+
         '''Affects flow when button event happens'''
         when_released = 0b000
         when_pressed = 0b001
