@@ -88,7 +88,8 @@ class user_input(object):
         for event in pygame.event.get():
             event_string = "JOY:" + str(event.joy)
             if event.type == JOYAXISMOTION:
-                event_string += ":a:"+str(event.axis)+":"+str(event.value)+":"
+                float_value = float(round(event.value, 5))
+                event_string += ":a:"+str(event.axis)+":"+str(float_value)+":"
             elif event.type == JOYBUTTONDOWN:
                 event_string += ":b:" + str(event.button) + ":1:"
             elif event.type == JOYBUTTONUP:
@@ -96,7 +97,6 @@ class user_input(object):
             else:
                 continue
             self.events.append(event_string)
-            print(event_string + "\n")
     def send_user_input_events(self, ui):
         '''Sends events in user_input.events to the pi_bot
         
@@ -104,7 +104,7 @@ class user_input(object):
         following the last call to user_input.send_user_input_events()
         '''
         for event in self.events:
-            ui.comms.send_message(self.events)
+            ui.comms.send_message(event)
         self.clear_user_input_events()
     def clear_user_input_events(self):
         '''Deletes all event strings from the string array'''

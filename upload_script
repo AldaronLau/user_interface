@@ -1,0 +1,13 @@
+#!/bin/bash
+local_pi_bot_program=$1
+
+#basic
+scp -r $local_pi_bot_program* pi@192.168.42.1:~/pi_bot_code/
+
+#advanced
+
+# tell pi to stop current program execution
+
+# send pi_bot code
+
+# tell pi to start code execution

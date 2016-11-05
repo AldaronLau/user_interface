@@ -7,7 +7,7 @@ class communications(object):
     '''Class that manages communications with the user interface'''
     __SERVER_NAME = "192.168.42.1"
     __PORT = 4321
-    __MAX_MESSAGE_LENGTH = 16
+    __MAX_MESSAGE_LENGTH = 32
     def __init__(self):
         '''Initializes pi_bot server socket
         
@@ -32,48 +32,58 @@ class communications(object):
         if self.conn_recv.poll():
             self.connected = self.conn_recv.recv()
         return self.connected
+
     def connect_to_server(self, conn_send):
+        ''''''
+        try:
+            self.recieve_loop(conn_send)
+        finally:
+            print("shutting down client")
+            self.sock.close()
+    def recieve_loop(self, conn_send):
         '''Attempts to connect to the server
         
         Once connected, a new process is used to monitor recieved data
         '''
-        print("comms?")
-        while True:
-            '''Loop until a connection is found'''
-            try:
-                self.sock.connect(self.server_info)
-            except ConnectionRefusedError:
-                '''Don't break the loop just because no connection was found'''
-                continue
-            '''Break loop because connection was not refused'''
-            break
-        print("comms!")
-        conn_send.send(True)
-        '''Updates communications.recieved_messages with any recieved data
-        
-        This is a seperate process as socket.recv() will block the thread
-        '''
-        while True:
-            try:
-                bytes = self.sock.recv(self.__MAX_MESSAGE_LENGTH)
-            except KeyboardInterrupt:
-                self.sock.shutdown(1)
-                self.sock.close()
+        try:
+            print("comms?")
+            while True:
+                '''Loop until a connection is found'''
+                try:
+                    self.sock.connect(self.server_info)
+                except ConnectionRefusedError:
+                    '''Don't break the loop just because no connection was found'''
+                    continue
+                '''Break loop because connection was not refused'''
                 break
-            message = bytes.decode('utf-8')
-            if message is "":
-                print("setting connection to false")
-                conn_send.send(False)
-                self.connect_to_server(conn_send)
-                return
-            self.recieved_messages.put(message)
+            print("comms!")
+            conn_send.send(True)
+            '''Updates communications.recieved_messages with any recieved data
+            
+            This is a seperate process as socket.recv() will block the thread
+            '''
+            while True:
+                try:
+                    bytes = self.sock.recv(self.__MAX_MESSAGE_LENGTH)
+                except KeyboardInterrupt:
+                    self.sock.shutdown(1)
+                    self.sock.close()
+                    break
+                message = bytes.decode('utf-8')
+                if message is "":
+                    print("setting connection to false")
+                    conn_send.send(False)
+                    self.connect_to_server(conn_send)
+                    return
+                self.recieved_messages.put(message)
+        finally:
+            self.sock.close()
     def send_message(self, message):
         '''Attempts to send data to client'''
         if self.is_connected():
             if len(message) > self.__MAX_MESSAGE_LENGTH:
-                print("Message \"" + message + "\" is to long\n")#TODO: to log file
+                print("Message \"" + str(message) + "\" is to long\n")#TODO: to log file
             else:
-                print(message + " sent")
                 bytes = self.fill_out_message(message).encode('utf-8')
                 self.sock.sendall(bytes)
         else:
@@ -83,7 +93,6 @@ class communications(object):
         '''Called by robot to handle any data sent by the user_interface'''
         while not self.recieved_messages.empty():
             message = self.recieved_messages.get()
-            print(message)
             if message == self.fill_out_message("DISABLE"):
                 ui.robot_info.enable_state = information.state_disabled
             elif message == self.fill_out_message("ENABLE_TELEOP"):

@@ -5,6 +5,7 @@ from tkinter import font
 import pygame
 from information import information
 from communications import communications
+from sys import exit
 
 class gui(object):
     '''Class to handle communicating between the GUI'''
@@ -31,6 +32,11 @@ class gui(object):
         self.root.title(self.__interface_name)
         self.root.geometry(self.__interface_size)
         self.root.configure(background = "#555555")
+
+        self.root.protocol("WM_DELETE_WINDOW", lambda:self.close_program)
+    def close_program(self):
+        self.root.destroy()
+        exit(0)
     def setup_buttons(self, ui):
         '''Buttons to select which enable state to enable when ENABLE is pressed'''
         self.enable_mode_buttons = []
